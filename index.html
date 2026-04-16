@@ -1,3 +1,634 @@
+
+裕富月付金試算表
+/
+
+Updated todo list, used Claude in Chrome integration
+Updated todo list, used Claude in Chrome integration
+The commit dialog is already open and the editor content looks correct — I can see the HTML structure and the end of the file shows initApp(), </script>, </body>, </html> which confirms the paste was successful. Let me update the commit message and commit.
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+Now click the "Commit changes" button to deploy.
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+The commit message looks good. Clicking "Commit changes" to deploy.
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+The dialog is still open — my click didn't register on the button. Let me click it more precisely.
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+Let me use the find tool to locate and click the button precisely.
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+The commit was successful — the page navigated to flowhub-/blob/main/index.html, confirming the commit went through. Now I need to wait for GitHub Pages to deploy, then generate the compact links.
+
+
+Updated todo list
+Updated todo list
+While waiting for GitHub Pages to deploy, let me generate the new compact-format store links using Node.js. I need to update the gen_links.js script to use the #c= compact format.
+
+
+Read a file
+Read a file
+Now let me write an updated script that generates compact #c= format links:
+
+
+Created a file, ran a command, updated todo list
+Created a file, ran a command, updated todo list
+Let me read the generated file and then test one of the compact links:
+
+
+Read a file
+Read a file
+Links generated successfully. The compact links are much shorter — for example, 得人疼 went from ~3129 chars to 1017 chars. Now let me test a compact link on the live site. Let me use the 得人疼 link since it's the most complex store:
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+The compact link works perfectly! The 得人疼 store loaded correctly with all the finance company data — I can see 裕富數位 (BuyNpay) with 8 期數 (plans) showing the correct monthly payment calculations for 3期 through 30期.
+
+
+Updated todo list
+Updated todo list
+全部完成了！以下是結果摘要：
+
+精簡連結已上線 — 成功將更新部署到 GitHub Pages，新的 #c= 格式連結比舊的 #d= 格式短了約 66%：
+
+店家	舊連結長度	新連結長度
+旗艦店 A	~1,800 字元	625 字元
+加盟店 B	~900 字元	297 字元
+網路商城 C	~1,600 字元	561 字元
+得人疼	~3,129 字元	1,017 字元
+舊的 #d= 連結仍然完全相容，已經發給店家的舊連結不需要更新。
+
+查看更新後的店家連結檔案
+
+還是很長 我該怎麼再簡短呢
+提供給店家的連結 程式碼是安全的嗎? 會不會被抄襲
+
+
+Thought process
+Thought process
+這兩個問題都很重要，讓我分別回答：
+
+連結還能更短嗎？
+
+目前連結的長度主要來自中文店名和分期公司名稱（中文字在 Base64 編碼後會膨脹約 4 倍）。要再縮短，最實際的方式是用短網址服務，例如 bit.ly、reurl.cc（台灣常用）等，可以把 1000 字元的連結變成 20~30 字元。
+
+如果不想依賴外部短網址服務，程式面還可以做的有：把分期公司名稱改成代號（例如裕富=1, 中租=2），但這樣會讓程式更複雜，而且省下的幅度有限。
+
+店家連結的安全性
+
+這要看你擔心的是哪一種風險：
+
+連結裡的資料 — URL hash（#c= 後面那段）是 Base64 編碼，不是加密。任何懂技術的人都可以解碼看到店名和分期費率。不過這些費率本身不算機密，店家客人看到也沒什麼問題。
+
+程式碼被抄襲 — 目前你的 GitHub repo 是公開的（public），任何人都可以看到完整原始碼。如果你擔心被抄，有幾個選項：
+
+把 repo 改成 Private — 但 GitHub Pages 免費版只支援 public repo。Private repo 要用 GitHub Pages 需要 GitHub Pro（月費 $4 USD）
+目前的 protected 版本已經有做 JS 混淆/壓縮，增加了閱讀難度，但無法完全防止有心人反向工程
+部署到其他平台（如 Netlify、Vercel）可以用 private repo + 免費 hosting
+你比較想先處理哪個方向？
+
+我發現 每個店家的複製連結出來都是得人疼!!!這樣不行 我必須要一設定完手續費率專案，儲存之後就是每個專屬店家的連結出現
+
+
+Updated todo list
+Updated todo list
+You've hit your limit · resets 3am (Asia/Taipei)
+
+請優化產生對外連結的步驟，常常失敗
+
+
+Searched code, read a file
+Searched code, read a file
+我看了一下程式碼。getStoreUrl(storeId) 的邏輯本身是正確的，每個 storeId 會找到對應的店家資料。要診斷「複製連結都是得人疼」和「產生對外連結常常失敗」的問題，我需要先看一下 initApp 和資料載入的部分，確認有沒有資料被覆寫的問題。
+
+
+Searched 2 patterns, read 2 files
+Searched 2 patterns, read 2 files
+找到問題了！我來分析一下「複製連結都是得人疼」的根本原因，以及優化產生連結的流程：
+
+問題根源：
+
+當你在同一個分頁先打開得人疼的 portable link，系統會把 D.stores 改成只剩得人疼一家店（in-memory 覆寫）
+然後點「後台管理」按鈕時，goAdmin() 只切換畫面、沒有重新載入資料
+所以後台表格裡雖然看起來有多家店，但其實 D.stores 只有得人疼，複製出來的連結自然全部都是得人疼
+優化方向：
+
+進入後台時重新從 localStorage 載入資料（解決 portable link 污染問題）
+複製連結時，每次都即時重新產生 URL（不依賴 input 裡的舊值）
+新增 fallback：如果 clipboard 失敗，彈出對話框讓使用者手動複製
+點擊 input 本身也能一鍵複製（減少點擊步驟）
+我先進行修改：
+
+
+Edited a file
+Edited a file
+現在優化複製連結的功能 — 每次點擊都即時重新產生 URL，並加入更強健的 fallback：
+
+
+Edited a file
+Edited a file
+現在讓 input 點擊時也能一鍵複製，進一步減少操作步驟：
+
+
+Edited a file
+Edited a file
+再確認編輯費率後連結會自動更新：
+
+
+Searched code, read a file
+Searched code, read a file
+saveFc 儲存後沒有重新渲染店家表格，導致店家連結 input 裡的 URL 跟新設定的資料對不上。加上 renderSt()：
+
+
+Edited a file
+Edited a file
+重新建置 protected 版本：
+
+
+Ran 4 commands
+Ran 4 commands
+本地檔案都已更新完成。以下是這次優化的重點整理：
+
+根本問題修復（解決「連結全部都是得人疼」）：
+
+進入後台 goAdmin() 時會重新從 localStorage 載入資料，避免先前看過得人疼的 portable link 把 D.stores 在記憶體裡被覆寫污染。
+
+複製連結流程優化：
+
+即時重新產生 URL — 每次點複製都重新呼叫 getStoreUrl()，不再依賴 input 裡的舊快取值
+三層 fallback：
+第一層：navigator.clipboard.writeText()（HTTPS 標準）
+第二層：execCommand('copy')（舊瀏覽器相容）
+第三層：彈出對話框顯示完整連結，讓使用者手動選取複製（即使前兩層都失敗也不會卡住）
+一鍵複製：點擊連結 input 本身也會自動複製（少點一次按鈕）
+Toast 提示：成功複製時會顯示「已複製『店家名』連結」，讓使用者明確知道複製到哪家店的連結
+編輯分期公司後自動更新店家連結 — saveFc() 儲存後會自動重新渲染店家表格，避免連結用到舊的 FC 設定
+「開啟」改為「測試開啟」 — 文字更明確，提醒管理員可以先測試再寄出
+本地 FlowHub_試算系統_protected.html 已重新 build 完成（82,976 bytes）。
+
+查看更新後的 protected 版本
+
+如果你要讓 GitHub Pages 上的線上版本也套用這次的修復，要重新 deploy 分期付款試算系統.html 的內容到 GitHub index.html。要幫你部署嗎？
+
+可以讓我登入後台之後新增的店家 到試算中心都還可以一直留存嗎
+
+
+Thought process
+Thought process
+可以的，新增的店家會永久留存在試算中心，原理如下：
+
+資料儲存位置： 瀏覽器的 localStorage（本地儲存）
+
+每次你在後台按「儲存」時，系統會把所有店家和分期公司資料寫入 localStorage。下次打開網頁時會自動讀回來，所以只要用同一台電腦、同一個瀏覽器，資料就會一直在。
+
+會持續保留的情境（安全）：
+
+關掉瀏覽器再打開 ✓
+重新開機 ✓
+隔天、隔月、隔年再打開 ✓
+在試算中心和後台之間切換 ✓
+可能會丟資料的情境（需注意）：
+
+清除瀏覽器資料（清 cookies/快取時勾到「網站資料」）— 會整個被清掉
+換瀏覽器（Chrome 換成 Edge）— 是不同的 localStorage，看不到原本的店家
+換電腦或換手機 — 同上，localStorage 不會跨裝置同步
+使用無痕模式 — 關閉無痕視窗後資料會消失
+先前的風險已修復： 之前有個 bug 是當你先打開得人疼的連結看測試，再進後台時，D.stores 會被記憶體裡的得人疼資料污染。剛剛的修正讓進後台時會重新從 localStorage 載入，所以不會再發生店家資料「消失」或「被蓋掉」的狀況。
+
+建議作法：
+
+定期在後台「匯出」資料成檔案備份（如果系統有這功能，沒有的話我可以幫你加上去）
+如果需要多台裝置同步使用，localStorage 做不到，要另外加雲端儲存（這個比較大工程）
+要不要我幫你加上「匯出/匯入 JSON 備份」的功能？這樣就算換電腦或不小心清到瀏覽器資料，也能從檔案還原。
+
+幫我優化這個試算中心
+基本流程很完美了
+
+
+Thought process
+Thought process
+好的！基本流程你已經覺得滿意，那優化就著重在視覺和使用者體驗上。我先問幾個方向，再開工：
+
+試算中心要優先優化哪個方向？
+視覺 手機體驗
+店家最主要在什麼裝置上使用？
+手機為主
+好，聚焦在手機體驗 + 視覺升級。我先看一下目前試算中心的結構：
+
+
+Read 6 files, searched 2 patterns
+Read 6 files, searched 2 patterns
+Now I'll make comprehensive mobile-first visual optimizations to the calculator section.
+
+
+Edited 3 files, searched code, read a file
+Edited 3 files, searched code, read a file
+Now let me verify the result rendering flows correctly by reviewing the final file briefly, then present it to the user.
+
+
+Updated todo list, read a file, edited a file
+Updated todo list, read a file, edited a file
+試算中心已完成手機優先的視覺升級 ✨
+
+主要改動（手機為主）：
+
+金額輸入區
+
+金額字體放大到 26px，$ 符號改金色、更醒目
+分期公司下拉 min-height 50px（觸控舒適）
+輸入欄位圓角加大、陰影柔化
+方案切換按鈕
+
+兩個按鈕並排（不再上下堆疊），高度 58px，單手好按
+結果表格 → 卡片式呈現（手機上最大改動）
+
+表頭隱藏，每一列變成獨立卡片
+「3 期」「12 期」改成金色漸層的「膠囊徽章」
+月付金字體放大到 28px，超醒目
+IRR、總繳、撥款金額自動加小字標籤
+零利率的期數徽章改用鼠尾草綠色，視覺區分清楚
+桌機也升級
+
+月付金欄位改金色漸層文字（一般專案）／深綠（零利率）
+結果卡片圓角 16px、陰影更細膩
+導覽列
+
+手機上隱藏副標「分期付款月付金試算」讓 logo 更乾淨
+查看更新後的試算系統
+
+查看保護版（給店家用）
+
+建議直接用手機開起來看實際效果，確認沒問題後再部署到 GitHub Pages。如果視覺上還想微調（顏色、字體大小、間距），告訴我具體哪裡就好。
+
+專屬連結的部分可以自動產出嗎?
+直接產出給店家用的保護版
+
+
+Searched 2 patterns, read a file
+Searched 2 patterns, read a file
+我來實作「一鍵匯出所有店家連結」功能，同時說明保護版的部署方式。
+
+
+Edited a file
+Edited a file
+Now add the exportAllLinks function near exportD:
+
+
+Read a file, edited a file
+Read a file, edited a file
+Now let me rebuild the protected version and also update the standalone FlowHub_店家連結.txt to use the current store data:
+
+
+Ran a command, updated todo list
+Ran a command, updated todo list
+✅ 已完成！
+
+新增功能：「📤 匯出所有連結」按鈕 在後台 → 店家管理 → 工具列旁邊，一鍵匯出所有啟用中店家的專屬連結為 .txt 檔，含店名、備註、完整連結、字元長度。
+
+關於「保護版」的部分，關鍵觀念：
+
+#c= 連結只是把資料塞進網址的 hash，載入哪個 HTML 完全看網址指向的檔案。所以讓店家拿到的自動是保護版的方法有兩種：
+
+做法 A（推薦・零改動）：把保護版部署成 GitHub Pages 的 index.html
+
+把 FlowHub_試算系統_protected.html 內容覆蓋到 GitHub repo 的 index.html
+部署後，所有現有的店家連結自動變保護版（連結本身不用改）
+店家查看原始碼只能看到 base64 + minify 過的程式碼
+做法 B：保護版放在獨立路徑，後台設定對外網址
+
+上傳保護版為 https://ginakuo312.github.io/flowhub-/protected.html
+進後台「系統對外網址設定」改成該網址
+重新匯出連結，之後產生的新連結都指向保護版
+查看最新原始檔
+
+查看最新保護版（建議用這份部署）
+
+要我現在幫你把保護版部署到 GitHub Pages 覆蓋 index.html 嗎？（做法 A，最快最省事）
+
+現在幫我把保護版部署到 GitHub Pages 覆蓋 index.html
+
+
+Used Claude in Chrome integration, ran a command
+Used Claude in Chrome integration, ran a command
+Chrome 外掛目前沒連上，無法由我直接操作瀏覽器。請您檢查：
+
+Chrome 瀏覽器是否開啟中
+Claude 的 Chrome 擴充功能是否已登入
+確認後告訴我，我會立刻重試部署。
+
+如果您想手動操作也很快，三步完成：
+
+開啟 GitHub repo index.html
+全選刪除舊內容，貼上新的保護版內容（我可以幫您複製）
+按 Commit changes
+要的話我現在把保護版檔案內容輸出給您，您直接複製貼上；或等 Chrome 連上後我幫您自動完成。您想怎麼做？
+
+把檔案給我 並且幫我開好上傳頁面
+
+
+Read a file, used Claude in Chrome integration
+Read a file, used Claude in Chrome integration
+Chrome 擴充功能目前連不上，我沒辦法直接幫您開頁面。請您手動操作（很快）：
+
+步驟 1：下載保護版檔案
+
+下載保護版 HTML
+
+步驟 2：開啟 GitHub 編輯頁面（點下面連結）
+
+👉 點這裡開啟 index.html 編輯頁面
+
+步驟 3：替換內容並 commit
+
+在 GitHub 編輯頁面：
+
+用滑鼠點入程式碼區，按 Ctrl+A 全選（Mac 是 Cmd+A）
+按 Delete 刪除
+開啟剛下載的保護版檔案（用記事本 / VS Code / 任何文字編輯器），Ctrl+A 全選、Ctrl+C 複製
+回到 GitHub，按 Ctrl+V 貼上
+拉到頁面最下方，點綠色的 Commit changes... 按鈕
+再點一次 Commit changes 確認
+部署需 1–2 分鐘。之後開啟 https://ginakuo312.github.io/flowhub-/ 會是保護版，所有現有店家連結自動全部變保護版 ✅
+
+如果 Chrome 擴充連上了，跟我說一聲，我可以直接幫您完成貼上＋commit。
+
+
+C:\Users\GINA\Desktop\裕富資料\裕富月付金試算表\FlowHub_試算系統_protected.html
+Code 
+
+
+Google Chrome
+
+可以協助我完成嗎
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+Chrome 擴充目前還是連不上，我這邊沒辦法直接操作瀏覽器替您完成。需要您先做一個動作：
+
+請檢查 Chrome：
+
+Chrome 是否是開啟的（不是只在背景或最小化）
+點一下瀏覽器右上角的 Claude 擴充功能圖示，看它是否顯示「已連接」
+如果沒連接，重新登入一下擴充功能
+完成後跟我說「好了」或「連上了」，我會立刻重試並幫您：
+
+自動開啟 GitHub 編輯頁面
+貼上保護版內容
+幫您 commit
+在這期間如果您想自己手動完成也完全可以，三步驟：
+
+點開 保護版檔案，右鍵用記事本開啟 → Ctrl+A 全選 → Ctrl+C 複製
+點 GitHub 編輯頁 → 在程式碼區 Ctrl+A → Ctrl+V 貼上
+拉到最下方 → Commit changes... → 再按 Commit changes ✅
+要等 Chrome 連上我幫您做，還是您現在手動進行？
+
+等 Chrome 連上幫我做
+
+
+Tabs Context
+Tabs Context
+Chrome 擴充目前還是沒連上。請您：
+
+開啟 Chrome 瀏覽器（確認是在前景、沒被最小化）
+點瀏覽器右上角的 Claude 擴充功能圖示（紫色星星圖示）
+看它是否顯示已連接狀態；若沒有，請點「Connect」或重新登入
+完成後，在這裡回我一句「好了」或「連上了」，我就會立刻重試並自動幫您部署 🚀
+
+有了~
+
+
+Used Claude in Chrome integration
+Used Claude in Chrome integration
+還是連不上 😅 請試試看：
+
+在 Chrome 右上角點 Claude 擴充功能圖示
+看彈出視窗內是否有 「Connect」按鈕，有的話點一下
+或是把擴充功能關掉再重新啟用（在 chrome://extensions 裡面切換開關）
+完成後再回我「好了」，我會再試一次。
+
+或者如果想快一點，您也可以直接告訴我「改手動」，我引導您 3 步驟完成（全程不用超過 2 分鐘）。
+
+可以幫我確認為甚麼連不上嗎
+
+
+Tabs Context
+Tabs Context
+從我這邊看到的訊息是：「Chrome extension isn't reachable」，意思是我這端的工具呼叫沒辦法和您 Chrome 瀏覽器裡的 Claude 擴充功能建立連線。這個連線是 擴充功能主動連到 Claude 桌面應用程式，不是反過來，所以問題通常在 Chrome 那一側。
+
+常見原因 + 請您逐項檢查：
+
+擴充功能沒有「啟動連線」 開啟 Chrome，點右上角拼圖圖示（擴充功能清單）→ 找到 Claude for Chrome → 把它釘選出來 → 點一下圖示打開視窗 → 如果看到 「Connect to Claude」 或類似按鈕，一定要點下去（這是手動建立連線的開關）。
+Claude 桌面 app 版本與擴充功能不同步 Claude 桌面 app 最近有更新過嗎？試試看完全關閉（右下角系統列圖示 → 結束）再重新打開。
+擴充功能被瀏覽器暫停 到 chrome://extensions/ → 找到 Claude → 確認右下角開關是 藍色啟用中 → 點「詳細資料」→ 確認「存取網站的權限」是「在所有網站上」。
+您用的是 Chrome 以外的瀏覽器？ 這個擴充功能目前只支援 Chrome（Edge / Arc / Brave 不一定行）。請確認是真的 Google Chrome。
+多個 Chrome 視窗 / 設定檔 如果有多個 Chrome 設定檔（工作 / 個人），擴充功能可能只裝在其中一個。請確認擴充功能所在的那個設定檔是開著的。
+最常見的情況是第 1 項 —— 擴充功能需要「主動 Connect」才會連上，關閉 Chrome 後再打開常常需要重新點一次。
+
+請依序檢查後告訴我結果，我會立刻重試。如果想略過直接手動完成部署也隨時告訴我。
+
+給我github上傳頁面的連結 跟 完整的檔案
+
+
+Thought process
+Thought process
+GitHub 上傳頁面連結：
+
+👉 https://github.com/ginakuo312/flowhub-/edit/main/index.html
+
+（點下去會直接進入 index.html 的編輯模式）
+
+完整檔案：
+
+點此開啟保護版 HTML 檔案
+
+檔案大小約 87KB，直接在聊天室貼完整內容會太長。建議您：
+
+點上面檔案連結開啟
+在開啟的視窗按 Ctrl+A 全選 → Ctrl+C 複製
+到 GitHub 編輯頁 → 程式碼區 Ctrl+A 全選 → Ctrl+V 貼上
+拉到頁面最下方 → Commit changes... → 再按 Commit changes ✅
+部署後 1–2 分鐘網站就會更新，所有店家連結自動變保護版。
+
+如果檔案打不開或需要其他格式（例如下載為 .txt），跟我說。
+
+FlowHub
+📊 試算中心🔐 後台管理
+加盟店 B
+FlowHub 分期付款試算
+旗艦店 A加盟店 B網路商城 C
+商品總金額
+$
+分期公司全部顯示裕富數位 (BuyNpay)中租零卡 (zingala銀角零卡)
+一般專案利息分攤在客人月付金零利率店家負擔手續費
+💰
+請輸入商品金額開始試算
+Powered by FlowHub
+© 2026 FlowHub. All rights reserved. 未經授權禁止複製或使用本系統。
+
+可是我複製起來是這樣
+
+Show more
+
+Thought process
+Thought process
+問題找到了！您是在瀏覽器打開 HTML 檔案 → 複製到網頁「顯示出來的內容」。但我們需要的是「原始碼」才對。
+
+我幫您換一個可以直接看到原始碼的版本：
+
+
+Ran a command, read a file
+Ran a command, read a file
+請改用這個 .txt 檔案：
+
+點此開啟保護版原始碼（.txt 純文字）
+
+這份是同樣內容但副檔名是 .txt，打開後會顯示原始碼（<!DOCTYPE html> 開頭那一堆），不會被瀏覽器渲染成網頁。
+
+完整步驟：
+
+點上面連結，會看到一堆 <!DOCTYPE html>... 這種程式碼文字
+Ctrl+A 全選 → Ctrl+C 複製
+到 👉 https://github.com/ginakuo312/flowhub-/edit/main/index.html
+在程式碼編輯區 Ctrl+A 全選舊內容 → Ctrl+V 貼上新內容
+拉到最下方 → Commit changes... → 再按 Commit changes ✅
+檢查貼上成功的方法：最前面一定是 <!DOCTYPE html>，最後面是 </html>。
+
+
+C:\Users\GINA\Desktop\裕富資料\裕富月付金試算表\FlowHub_保護版原始碼_可複製.txt
+ 
+
+
+記事本
+
+提供月付金試算連結給我 我試看看最後完成狀況
+
+
+Thought process
+Thought process
+總控後台的連結呢
+
+這些對外連結都太長了
+
+以下是四個店家的月付金試算連結，部署完成後直接點開測試：
+
+旗艦店 A https://ginakuo312.github.io/flowhub-/#c=eyJuIjoi5peX6Imm5bqXIEEiLCJmIjpbeyJuIjoi6KOV5a+M5pW45L2NIChCdXlOcGF5KSIsImMiOjEsInAiOltbMywiYiIsMC4zNDE4OCwwLjAyNV0sWzYsImIiLDAuMTcyMTc2LDAuMDMyXSxbMTIsImIiLDAuMDg4NDE5LDAuMDU3NV0sWzI0LCJiIiwwLjA0NjY4NSwwLjEwNzVdXX0seyJuIjoi5Lit56ef6Zu25Y2hICh6aW5nYWxh6YqA6KeS6Zu25Y2hKSIsInAiOltbNiwiYiIsMC4xNzUsMC4wM10sWzEyLCJiIiwwLjA5LDAuMDU1XSxbMjQsImIiLDAuMDQ4LDAuMTA1XV19LHsibiI6IuWSjOa9pOS8gealrSAoUGF5NFUpIiwiZyI6Im1hcmt1cCIsInAiOltbNiwiYiIsMC4xNzMsMC4wMjhdLFsxMiwiYiIsMC4wODksMC4wNTVdXX0seyJuIjoi6bq75ZCJ5LuYIChNQUpJUEFZKSIsInAiOltbMywiYiIsMC4zNDQsMC4wMzNdLFsxMiwiYiIsMC4wOTEsMC4wNThdXX1dfQ==
+
+加盟店 B https://ginakuo312.github.io/flowhub-/#c=eyJuIjoi5Yqg55uf5bqXIEIiLCJmIjpbeyJuIjoi6KOV5a+M5pW45L2NIChCdXlOcGF5KSIsImMiOjEsInAiOltbNiwiZyIsMC4xNzIxNzZdLFsxMiwiZyIsMC4wODg0MTldXX0seyJuIjoi5Lit56ef6Zu25Y2hICh6aW5nYWxh6YqA6KeS6Zu25Y2hKSIsInAiOltbNiwiYiIsMC4xNzUsMC4wM10sWzEyLCJiIiwwLjA5LDAuMDU1XV19XX0=
+
+網路商城 C https://ginakuo312.github.io/flowhub-/#c=eyJuIjoi57ay6Lev5ZWG5Z+OIEMiLCJmIjpbeyJuIjoi6KOV5a+M5pW45L2NIChCdXlOcGF5KSIsImMiOjEsInAiOltbNiwiYiIsMC4xNzIxNzYsMC4wMzJdLFsxMiwiYiIsMC4wODg0MTksMC4wNTc1XSxbMjQsImIiLDAuMDQ2Njg1LDAuMTA3NV0sWzM2LCJiIiwwLjAzMjg3LDAuMTU1XV19LHsibiI6IuWIhuacn+i2oyAoR09HT1BBWSkiLCJwIjpbWzMsInoiLDAsMC4wMl0sWzYsInoiLDAsMC4wM10sWzEyLCJ6IiwwLDAuMDU1XV19LHsibiI6IkFGVEVFIOW+jOaUr+S7mCIsInAiOltbMywieiIsMCwwLjAyNV0sWzYsInoiLDAsMC4wNF1dfSx7Im4iOiLmnIjku5jlpKfkurogKG1vbnRobHlwYXkpIiwicCI6W1szLCJiIiwwLjM0NCwwLjAzNV0sWzEyLCJiIiwwLjA5LDAuMDZdXX1dfQ==
+
+得人疼 https://ginakuo312.github.io/flowhub-/#c=eyJuIjoi5b6X5Lq655a8IiwiZiI6W3sibiI6IuijleWvjOaVuOS9jSAoQnV5TnBheSkiLCJjIjoxLCJwIjpbWzMsImIiLDAuMzQxODgsMC4wMjVdLFs2LCJiIiwwLjE3MjcxLDAuMDM1XSxbOSwiYiIsMC4xMTY5NiwwLjA1XSxbMTIsImIiLDAuMDg4ODksMC4wNjI1XSxbMTgsImIiLDAuMDYxMjIsMC4wOTI1XSxbMjQsImIiLDAuMDQ3MDgsMC4xMTVdLFszMCwiYiIsMC4wMzg5ODQsMC4xNDVdLFszNiwiYiIsMC4wMzMyNjUsMC4xNjVdXX0seyJuIjoi5Lit56ef6Zu25Y2hICh6aW5nYWxh6YqA6KeS6Zu25Y2hKSIsInAiOltbNiwiYiIsMCwwLjA0NV0sWzksImIiLDAsMC4wNl0sWzEyLCJiIiwwLDAuMDc1XSxbMTgsImIiLDAsMC4xMV0sWzI0LCJiIiwwLDAuMTRdXX0seyJuIjoi5ZKM5r2k5LyB5qWtIChQYXk0VSkiLCJnIjoibWFya3VwIiwicCI6W1s2LCJiIiwwLDAuMDM1XSxbOSwiYiIsMCwwLjA1XSxbMTIsImIiLDAsMC4wNjVdLFsxOCwiYiIsMCwwLjA5XSxbMjQsImIiLDAsMC4xMl0sWzMwLCJiIiwwLDAuMTY1XSxbMzYsImIiLDAsMC4xOF1dfSx7Im4iOiLpurvlkInku5ggKE1BSklQQVkpIiwicCI6W1szLCJiIiwwLDAuMDI2N10sWzYsImIiLDAsMC4wNDcyXSxbOSwiYiIsMCwwLjA2NzldLFsxMiwiYiIsMCwwLjA4ODhdLFsxOCwiYiIsMCwwLjEwOTldLFsyNCwiYiIsMCwwLjE3NV0sWzMwLCJiIiwwLDAuMjE4N10sWzM2LCJiIiwwLDAuMjY1Ml0sWzQ4LCJiIiwwLDAuMzU5OF1dfV19
+
+確認部署完成的測試項目：
+
+✅ 點開連結後，店名和分期公司正確顯示
+✅ 輸入金額後月付金計算正確
+✅ 手機開啟時畫面清爽、期數膠囊徽章是金色漸層
+✅ 按 F12 → Sources → 查看 index.html 源碼，應該只看到 base64 編碼（看不到明文程式碼）
+測試後告訴我結果如何，有任何要調整的我再幫您處理 🙌
+
+總控後台的連結呢
+這些對外連結都太長了
+
+
+Thought process
+Thought process
+總控後台連結：
+
+https://ginakuo312.github.io/flowhub-/
+
+（與試算中心同一個網址，打開後點右上角 🔐 後台管理 → 輸入密碼 Aa1234）
+
+關於連結太長：
+
+連結長是因為店名、分期公司名都是中文，Base64 編碼後字元會膨脹約 4 倍。這是用「URL 自帶資料」換來的好處（店家任何裝置打開都不用依賴後端）。
+
+縮短方案有兩個方向：
+
+方案 1：用短網址服務（最快、不用改程式） 把每個店家的連結丟到 TinyURL 或 reurl.cc，變成像 https://tinyurl.com/flowhub-A 這種短連結。優點：立刻可用、無需部署。
+
+方案 2：我幫您加「一鍵產生短網址」按鈕（自動化） 在後台店家管理的「複製連結」旁邊加一顆 🔗 按鈕，點下去自動呼叫 TinyURL API，產生短網址後自動複製。之後管理員不用再手動縮，系統幫您搞定。
+
+範例效果：
+
+原連結：https://ginakuo312.github.io/flowhub-/#c=eyJuIjoi5peX... （625 字元）
+短連結：https://tinyurl.com/flowhub-旗艦A （約 35 字元）
+想選哪個？
+
+先手動試：我把 4 個連結都丟給您，您自己到 tinyurl.com 縮
+加自動化按鈕：我現在就把功能做進後台（需部署一次新版）
+幫我加「一鍵產生短網址」按鈕
+
+
+Searched 2 patterns, edited 2 files
+Searched 2 patterns, edited 2 files
+Now add the shortenLink function right after copyLink:
+
+
+Read a file, edited a file
+Read a file, edited a file
+Now add a small style for the short button, and update exportAllLinks to use short URLs when available:
+
+
+Edited 2 files
+Edited 2 files
+Now rebuild protected version and create the updated .txt:
+
+
+Ran a command, updated todo list
+Ran a command, updated todo list
+✅ 一鍵產生短網址功能已完成！
+
+新增內容：
+
+🔗 縮短按鈕（每個店家的連結旁邊）
+點一下自動呼叫 is.gd 產生短網址（若失敗自動改用 TinyURL）
+縮短後自動複製到剪貼簿
+結果會儲存在店家資料中，之後複製連結會直接給短網址
+顯示字元數對比
+未縮短：「原始長度：625 字元」（灰色提示）
+已縮短：「✓ 短網址已產生（28 字元）」（綠色提示）
+🔄 重新產生按鈕（已縮短過的店家）
+如果想換新的短網址可以再按一次
+匯出所有連結會自動優先使用短網址
+預期效果：
+
+原：https://ginakuo312.github.io/flowhub-/#c=eyJuIjoi5peX5...（625 字元）
+後：https://is.gd/FlOwH8（約 20–28 字元）✨
+部署新版：
+
+下載新的保護版（.txt 可直接複製）
+
+GitHub 編輯頁
+
+一樣 Ctrl+A 全選原始碼 → 貼到 GitHub → Commit。部署完後：
+
+進後台 → 店家管理
+每個店家旁邊會有綠色的「🔗 縮短」按鈕
+一個個點擊，就會產生超短的分享網址 🎯
+
+
+
+
+Claude is AI and can make mistakes. Please double-check responses.
+Flowhub 保護版原始碼 可複製 · TXT
+
+
+記事本
+
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
@@ -25,7 +656,7 @@
   }
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Segoe UI','Microsoft JhengHei',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--cream);color:var(--text);min-height:100vh}
-
+ 
   /* NAV */
   .nav{background:linear-gradient(135deg,#3e3430 0%,#5c4a3e 40%,#6b5740 100%);padding:0 28px;display:flex;align-items:center;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 4px 20px rgba(62,52,48,.25)}
   .nav-brand{font-size:17px;font-weight:700;color:#fff;margin-right:32px;white-space:nowrap;display:flex;align-items:center;gap:6px;letter-spacing:.5px}
@@ -36,14 +667,14 @@
   .nav-tab{padding:8px 18px;border:none;background:none;cursor:pointer;font-size:14px;color:rgba(255,255,255,.45);border-radius:8px;font-weight:500;transition:.2s;letter-spacing:.3px}
   .nav-tab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.08)}
   .nav-tab.active{color:#fff;background:rgba(255,255,255,.12);backdrop-filter:blur(4px)}
-
+ 
   .container{max-width:960px;margin:0 auto;padding:24px 20px}
   .card{background:var(--white);border-radius:var(--radius-lg);box-shadow:var(--shadow-md);border:1px solid rgba(201,169,110,.12);overflow:hidden}
   .card-body{padding:24px}
-
+ 
   /* ===== FRONT - Premium Design ===== */
   .front-card{border:none;box-shadow:var(--shadow-lg);border-radius:20px;overflow:hidden}
-
+ 
   .store-banner{
     background:linear-gradient(135deg,#4a3f35 0%,#5c4a3e 30%,#6b5740 60%,#7a6550 100%);
     padding:28px 32px;color:#fff;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
@@ -62,7 +693,7 @@
   .store-sel{padding:8px 14px;border-radius:8px;border:1px solid rgba(201,169,110,.3);background:rgba(255,255,255,.08);color:#fff;font-size:13px;outline:none;cursor:pointer;backdrop-filter:blur(4px);position:relative;z-index:1;transition:.2s}
   .store-sel:hover{background:rgba(255,255,255,.12);border-color:rgba(201,169,110,.5)}
   .store-sel option{color:#333;background:#fff}
-
+ 
   /* Amount Input - Premium */
   .calc-input-area{
     padding:30px 32px;display:flex;gap:20px;align-items:flex-end;flex-wrap:wrap;
@@ -94,7 +725,7 @@
   .fc-select:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,169,110,.15)}
   .amt-preview{font-size:14px;color:var(--text-light);align-self:center;white-space:nowrap;padding-bottom:8px}
   .amt-preview b{color:var(--brand-dark);font-size:16px}
-
+ 
   /* Plan Toggle - Elegant */
   .toggle-section{padding:20px 32px}
   .type-toggle{display:flex;border-radius:14px;overflow:hidden;border:2px solid var(--g200);background:var(--cream);position:relative}
@@ -108,7 +739,7 @@
   .type-btn.sel-gen{background:linear-gradient(135deg,var(--gold-pale),var(--gold-lighter));color:var(--brand-dark);border-color:var(--gold);box-shadow:inset 0 2px 8px rgba(201,169,110,.1)}
   .type-btn:hover:not(.sel-zero):not(.sel-gen){background:rgba(201,169,110,.06)}
   .type-sub{font-size:11px;font-weight:400;display:block;margin-top:4px;opacity:.55}
-
+ 
   /* Results - Premium Cards */
   .res-area{padding:20px 32px 32px}
   .res-section{border-radius:16px;overflow:hidden;border:1px solid var(--g200);margin-bottom:18px;box-shadow:var(--shadow);transition:.25s;background:var(--white)}
@@ -119,7 +750,7 @@
   .res-hdr .pill{font-size:11px;padding:4px 11px;border-radius:12px;margin-left:auto;font-weight:700;letter-spacing:.5px}
   .res-hdr.zh .pill{background:var(--sage-lt);color:var(--sage-dark)}
   .res-hdr.gh .pill{background:var(--gold-lighter);color:var(--brand)}
-
+ 
   .rt{width:100%;border-collapse:collapse}
   .rt th{padding:12px 18px;font-size:12px;font-weight:700;text-align:center;border-bottom:2px solid var(--g200);letter-spacing:.5px}
   .rt.zt th{background:#f5faf5;color:var(--sage)}
@@ -132,14 +763,14 @@
   .rt.gt .monthly{background:linear-gradient(135deg,var(--gold-deep),var(--brand-dark));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
   .rt.zt .monthly{color:var(--sage-dark)}
   .rt .note{font-size:11px;color:var(--g400);font-style:italic;padding:10px 18px;background:var(--g50)}
-
+ 
   .no-msg{padding:40px;text-align:center;color:var(--g400);font-size:15px}
   .no-msg .no-icon{font-size:36px;margin-bottom:10px;opacity:.5}
-
+ 
   /* Powered by footer */
   .powered-by{text-align:center;padding:14px;font-size:11px;color:var(--text-muted);letter-spacing:.5px;border-top:1px solid var(--g100)}
   .powered-by strong{color:var(--gold);font-weight:700}
-
+ 
   /* ===== PASSWORD GATE ===== */
   .pw-gate{max-width:400px;margin:80px auto;text-align:center}
   .pw-gate .pw-icon{font-size:52px;margin-bottom:18px}
@@ -151,39 +782,39 @@
   .pw-input-wrap button{padding:12px 24px;background:linear-gradient(135deg,var(--brand-dark),var(--brand-light));color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;transition:.2s;letter-spacing:.5px}
   .pw-input-wrap button:hover{opacity:.9;transform:translateY(-1px)}
   .pw-error{color:var(--red);font-size:13px;margin-top:12px;display:none}
-
+ 
   /* ===== ADMIN ===== */
   .admin-tabs{display:flex;gap:4px;margin-bottom:18px;background:var(--cream-dark);padding:4px;border-radius:10px}
   .admin-tab{flex:1;padding:10px;border:none;background:none;border-radius:8px;font-size:14px;font-weight:500;cursor:pointer;color:var(--g500);transition:.2s;text-align:center}
   .admin-tab.active{background:var(--white);color:var(--text);box-shadow:var(--shadow);font-weight:700}
-
+ 
   .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
   .stat{background:var(--white);border:1px solid var(--g200);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow);transition:.2s}
   .stat:hover{box-shadow:var(--shadow-md)}
   .stat-l{font-size:12px;color:var(--text-light);margin-bottom:4px}.stat-v{font-size:24px;font-weight:800;color:var(--brand)}
-
+ 
   .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px}
   .toolbar-t{font-size:17px;font-weight:700;color:var(--brand)}
   .toolbar-a{display:flex;gap:8px;flex-wrap:wrap}
-
+ 
   .search-bar{margin-bottom:14px}
   .search-bar input{width:100%;padding:10px 16px;border:2px solid var(--g200);border-radius:10px;font-size:14px;outline:none;background:var(--white);transition:.2s}
   .search-bar input:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,110,.1)}
-
+ 
   .at{width:100%;border-collapse:collapse;font-size:13px}
   .at th{text-align:left;padding:11px 14px;background:var(--cream);border-bottom:2px solid var(--g200);font-weight:700;color:var(--g600);white-space:nowrap}
   .at td{padding:11px 14px;border-bottom:1px solid var(--g100);vertical-align:top}
   .at tr:hover td{background:var(--cream)}
-
+ 
   .tags{display:flex;flex-wrap:wrap;gap:4px}
   .tag{font-size:11px;padding:3px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
   .tag-z{background:var(--sage-bg);color:var(--sage-dark)}
   .tag-g{background:var(--gold-pale);color:var(--gold-deep)}
   .tag-fc{background:var(--cream-dark);color:var(--brand)}
-
+ 
   .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700}
   .b-on{background:#e8f5e9;color:#2e7d32}.b-off{background:var(--red-bg);color:var(--red)}
-
+ 
   .btn{padding:7px 14px;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:5px}
   .btn-p{background:linear-gradient(135deg,var(--brand-dark),var(--brand-light));color:#fff}.btn-p:hover{opacity:.9;transform:translateY(-1px)}
   .btn-o{background:var(--white);color:var(--g600);border:1px solid var(--g300)}.btn-o:hover{background:var(--cream);border-color:var(--gold-light)}
@@ -191,20 +822,20 @@
   .btn-s{background:var(--sage);color:#fff}
   .btn-lock{padding:8px 16px;background:rgba(201,169,110,.15);color:var(--gold);border:1px solid rgba(201,169,110,.25);border-radius:8px;font-size:13px;cursor:pointer;font-weight:600;transition:.2s}
   .btn-lock:hover{background:rgba(201,169,110,.25);color:var(--gold-deep)}
-
+ 
   /* MODALS */
   .overlay{position:fixed;inset:0;background:rgba(74,66,64,.5);display:flex;align-items:center;justify-content:center;z-index:200;backdrop-filter:blur(4px)}
   .modal{background:var(--white);border-radius:18px;width:92%;max-width:720px;max-height:88vh;overflow-y:auto;padding:28px;box-shadow:var(--shadow-lg)}
   .m-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
   .m-head h3{font-size:18px;font-weight:700;color:var(--brand)}
   .m-close{background:none;border:none;font-size:24px;cursor:pointer;color:var(--g400);padding:4px;transition:.2s}.m-close:hover{color:var(--text)}
-
+ 
   .fg{margin-bottom:14px}
   .fg label{display:block;font-size:12px;font-weight:700;color:var(--g600);margin-bottom:5px}
   .fg input,.fg select{width:100%;padding:9px 12px;border:1.5px solid var(--g300);border-radius:8px;font-size:14px;outline:none;background:var(--white);transition:.2s}
   .fg input:focus,.fg select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,110,.1)}
   .fg-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-
+ 
   .plan-list{border:1px solid var(--g200);border-radius:10px;overflow:hidden;margin-top:8px}
   .pl-hdr{display:grid;grid-template-columns:55px 90px 1fr 1fr 32px;background:var(--cream-dark);font-size:11px;font-weight:700;color:var(--g500)}
   .pl-hdr>div{padding:8px 6px;text-align:center}
@@ -218,19 +849,19 @@
   .pl-row input.i-z{color:var(--sage-dark);font-weight:700}
   .pl-row .x-btn{background:none;border:none;color:var(--g400);cursor:pointer;font-size:16px;padding:2px 4px;border-radius:4px}
   .pl-row .x-btn:hover{background:var(--red-bg);color:var(--red)}
-
+ 
   .add-bar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-top:1px solid var(--g100);background:var(--cream);flex-wrap:wrap}
   .add-bar select{padding:5px 8px;border:1px solid var(--g200);border-radius:6px;font-size:12px}
   .add-bar button{padding:5px 12px;background:var(--brand);color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer;white-space:nowrap;font-weight:600}
-
+ 
   .m-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
-
+ 
   .fc-checks{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:8px}
   .fc-chk{display:flex;align-items:center;gap:7px;padding:10px 12px;border:1.5px solid var(--g200);border-radius:10px;font-size:13px;cursor:pointer;transition:.2s}
   .fc-chk:hover{background:var(--cream);border-color:var(--gold-light)}
   .fc-chk.checked{background:var(--gold-pale);border-color:var(--gold)}
   .fc-chk input{accent-color:var(--gold)}
-
+ 
   /* Store FC Config Cards */
   .st-fc-card{border:1.5px solid var(--gold-light);border-radius:12px;overflow:hidden;background:var(--white)}
   .st-fc-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--gold-pale);border-bottom:1px solid var(--gold-light)}
@@ -251,14 +882,14 @@
   .st-fc-add span{font-size:11px;color:var(--g500);font-weight:600}
   .st-fc-add select{padding:4px 6px;border:1px solid var(--g200);border-radius:5px;font-size:11px}
   .st-fc-add button{padding:4px 10px;background:var(--brand);color:#fff;border:none;border-radius:5px;font-size:11px;cursor:pointer;font-weight:600}
-
+ 
   /* Store Link */
   .store-link{display:flex;align-items:center;gap:6px;margin-top:6px}
   .store-link input{flex:1;padding:5px 8px;border:1px solid var(--g200);border-radius:6px;font-size:11px;color:var(--text-light);background:var(--cream);cursor:text}
   .store-link button{padding:4px 10px;background:var(--gold-pale);color:var(--gold-deep);border:1px solid var(--gold-light);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:.2s}
   .store-link button:hover{background:var(--gold-lighter)}
   .copied{background:var(--sage-bg)!important;color:var(--sage-dark)!important;border-color:var(--sage-lt)!important}
-
+ 
   /* Disbursement reveal toggle */
   .disb-cell{position:relative;cursor:pointer;user-select:none}
   .disb-hidden{color:transparent;background:var(--cream-dark);border-radius:6px;padding:2px 12px;font-size:12px;letter-spacing:2px;display:inline-block;min-width:80px;text-align:center;position:relative}
@@ -268,14 +899,14 @@
   .disb-toggle-btn{padding:4px 12px;border:1px solid var(--sage-lt);background:var(--sage-bg);color:var(--sage-dark);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;transition:.2s}
   .disb-toggle-btn:hover{background:var(--sage-lt)}
   .disb-toggle-btn.revealed{background:var(--cream-dark);border-color:var(--g300);color:var(--text-light)}
-
+ 
   /* Copyright watermark */
   .copyright-bar{text-align:center;padding:10px;font-size:10px;color:var(--text-muted);letter-spacing:.3px;background:var(--cream-dark);border-top:1px solid var(--g200)}
-
+ 
   .hidden{display:none!important}
   .toast{position:fixed;bottom:24px;right:24px;background:linear-gradient(135deg,var(--brand-dark),var(--brand));color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:500;box-shadow:var(--shadow-lg);z-index:300;animation:su .35s ease}
   @keyframes su{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-
+ 
   @media(max-width:768px){
     .stats-row{grid-template-columns:1fr 1fr}
     .calc-input-area{flex-direction:column;padding:20px 16px;gap:14px}
@@ -283,13 +914,13 @@
     .container{padding:14px 10px}
     .front-card{border-radius:18px}
     .pl-hdr,.pl-row{grid-template-columns:50px 75px 1fr 1fr 28px}
-
+ 
     /* Store banner - compact but elegant on mobile */
     .store-banner{padding:20px 20px 18px}
     .store-name{font-size:21px;letter-spacing:.5px}
     .store-sub{font-size:11px}
     .store-sel{padding:9px 14px;font-size:13px;min-height:40px}
-
+ 
     /* Amount input - tall, readable */
     .calc-f label{font-size:11px;letter-spacing:1.2px}
     .calc-f input[type="text"]{font-size:26px;padding:16px 16px 16px 40px;border-radius:14px;font-weight:800}
@@ -297,20 +928,20 @@
     .fc-select{padding:14px;font-size:15px;min-height:50px;border-radius:14px}
     .amt-preview{font-size:13px;padding:6px 2px 0;width:100%}
     .amt-preview b{font-size:15px}
-
+ 
     /* Type toggle - bigger touch targets, clearer selection */
     .toggle-section{padding:14px 16px}
     .type-toggle{flex-direction:row;border-radius:14px}
     .type-btn{padding:14px 8px;font-size:14px;min-height:58px;line-height:1.3}
     .type-btn:first-child{border-right:1px solid var(--g200);border-bottom:none}
     .type-sub{font-size:10px;margin-top:3px}
-
+ 
     /* Results - spotlight mobile design */
     .res-area{padding:12px 12px 20px}
     .res-section{margin-bottom:14px;border-radius:14px}
     .res-hdr{padding:13px 16px;font-size:15px}
     .res-hdr .pill{font-size:10px;padding:3px 9px}
-
+ 
     /* Result table -> stacked mobile cards */
     .rt thead{display:none}
     .rt,.rt tbody,.rt tr,.rt td{display:block;width:100%}
@@ -342,11 +973,11 @@
     .rt td.disb-col{display:block;grid-column:2}
     .rt td.disb-col[style*="none"]{display:none!important}
     .rt td.disb-col::before{content:'撥款 ';font-size:10px;color:var(--g400);font-weight:600}
-
+ 
     .disb-toggle-bar{padding:8px 16px;justify-content:center}
     .disb-toggle-btn{padding:8px 18px;font-size:12px;min-height:36px}
     .no-msg{padding:30px 16px;font-size:14px}
-
+ 
     /* Nav - tighter */
     .nav{padding:0 14px;height:54px}
     .nav-brand{font-size:14px;margin-right:8px;gap:4px}
@@ -356,7 +987,7 @@
     .nav-tab{padding:7px 12px;font-size:13px}
     .powered-by{padding:12px;font-size:10px}
   }
-
+ 
   @media(max-width:420px){
     .store-name{font-size:19px}
     .store-banner{padding:18px 16px 16px;flex-direction:column;align-items:flex-start}
@@ -368,7 +999,7 @@
 </style>
 </head>
 <body>
-
+ 
 <nav class="nav">
   <div class="nav-brand">
     <span class="brand-name">FlowHub</span>
@@ -381,7 +1012,7 @@
   </div>
   <button class="btn-lock hidden" id="lock-btn" onclick="lockAdmin()" style="margin-left:auto">🔓 登出</button>
 </nav>
-
+ 
 <!-- ====== FRONT ====== -->
 <div id="pg-calc" class="container">
   <div class="card front-card">
@@ -392,7 +1023,7 @@
       </div>
       <select id="c-store" class="store-sel" onchange="onStoreChange()"></select>
     </div>
-
+ 
     <div class="calc-input-area">
       <div class="calc-f" style="max-width:340px">
         <label>商品總金額</label>
@@ -409,7 +1040,7 @@
       </div>
       <div class="amt-preview" id="amt-preview"></div>
     </div>
-
+ 
     <div class="toggle-section">
       <div class="type-toggle">
         <button class="type-btn" data-t="general" onclick="setType('general')">
@@ -420,12 +1051,12 @@
         </button>
       </div>
     </div>
-
+ 
     <div class="res-area" id="calc-result"></div>
     <div class="powered-by">Powered by <strong>FlowHub</strong></div>
   </div>
 </div>
-
+ 
 <!-- ====== PASSWORD GATE ====== -->
 <div id="pg-pw" class="container hidden">
   <div class="card"><div class="card-body">
@@ -441,7 +1072,7 @@
     </div>
   </div></div>
 </div>
-
+ 
 <!-- ====== ADMIN ====== -->
 <div id="pg-admin" class="container hidden">
   <div class="stats-row" id="a-stats"></div>
@@ -449,7 +1080,7 @@
     <button class="admin-tab" onclick="aTab('fc')">🏦 分期公司管理</button>
     <button class="admin-tab active" onclick="aTab('store')">🛒 店家管理</button>
   </div>
-
+ 
   <div id="tab-fc" class="card hidden"><div class="card-body">
     <div class="toolbar">
       <div class="toolbar-t">分期公司報價設定</div>
@@ -465,7 +1096,7 @@
       <tbody id="fc-tbody"></tbody></table>
     </div>
   </div></div>
-
+ 
   <div id="tab-store" class="card"><div class="card-body">
     <div id="url-setup-box" style="border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -492,7 +1123,7 @@
     </div>
   </div></div>
 </div>
-
+ 
 <!-- FC Modal -->
 <div id="fc-modal" class="overlay hidden" onclick="event.target===this&&closeFcM()">
 <div class="modal">
@@ -531,7 +1162,7 @@
   </div>
   <div class="m-foot"><button class="btn btn-o" onclick="closeFcM()">取消</button><button class="btn btn-p" onclick="saveFc()">💾 儲存</button></div>
 </div></div>
-
+ 
 <!-- Store Modal -->
 <div id="st-modal" class="overlay hidden" onclick="event.target===this&&closeStM()">
 <div class="modal" style="max-width:780px">
@@ -553,10 +1184,10 @@
   </div>
   <div class="m-foot"><button class="btn btn-o" onclick="closeStM()">取消</button><button class="btn btn-p" onclick="saveSt()">💾 儲存</button></div>
 </div></div>
-
+ 
 <div class="copyright-bar">&copy; 2026 FlowHub. All rights reserved. 未經授權禁止複製或使用本系統。</div>
 <div id="toast" class="toast hidden"></div>
-
+ 
 <script>
 /*
  *  FlowHub Installment Calculator - Protected Build
@@ -595,6 +1226,6 @@ document.addEventListener('keydown',function(e){
   if(e.ctrlKey&&(e.key==='u'||e.key==='U'||e.key==='s'||e.key==='S')){e.preventDefault()}
 });
 </script>
-
+ 
 </body>
 </html>
